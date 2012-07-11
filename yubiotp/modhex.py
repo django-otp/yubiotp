@@ -1,19 +1,22 @@
 """
-Implementation of modhex encoding, which uses keyboard-independent characters.
+Implementation of `modhex encoding <http://www.yubico.com/modhex-calculator>`_,
+which uses keyboard-independent characters.
 
-hex digit:     0123456789abcdef
-modehex digit: cbdefghijklnrtuv
+::
 
-http://www.yubico.com/modhex-calculator
+    hex digit:    0123456789abcdef
+    modhex digit: cbdefghijklnrtuv
 """
 
 from binascii import hexlify, unhexlify
 from functools import partial
 
+__all__ = ['modhex', 'unmodhex', 'hex_to_modhex', 'modhex_to_hex']
+
 
 def modhex(data):
     """
-    Encode a string as modhex.
+    Encode a string of bytes as modhex.
 
     >>> modhex('abcdefghijklmnop')
     'hbhdhehfhghhhihjhkhlhnhrhthuhvic'
@@ -26,15 +29,8 @@ def unmodhex(encoded):
 
     >>> unmodhex('hbhdhehfhghhhihjhkhlhnhrhthuhvic')
     'abcdefghijklmnop'
-    >>> unmodhex('hbhdxx')
-    Traceback (most recent call last):
-        ...
-    ValueError: Illegal modhex character in input
     """
-    try:
-        return unhexlify(modhex_to_hex(encoded))
-    except StopIteration as e:
-        raise ValueError('Illegal modhex character in input')
+    return unhexlify(modhex_to_hex(encoded))
 
 def hex_to_modhex(hex_str):
     """
@@ -42,8 +38,15 @@ def hex_to_modhex(hex_str):
 
     >>> hex_to_modhex('69b6481c8baba2b60e8f22179b58cd56')
     'hknhfjbrjnlnldnhcujvddbikngjrtgh'
+    >>> hex_to_modhex('6j')
+    Traceback (most recent call last):
+        ...
+    ValueError: Illegal hex character in input
     """
-    return ''.join(map(hex_to_modhex_char, hex_str.lower()))
+    try:
+        return ''.join(map(hex_to_modhex_char, hex_str.lower()))
+    except StopIteration:
+        raise ValueError('Illegal hex character in input')
 
 def modhex_to_hex(modhex_str):
     """
@@ -51,8 +54,15 @@ def modhex_to_hex(modhex_str):
 
     >>> modhex_to_hex('hknhfjbrjnlnldnhcujvddbikngjrtgh')
     '69b6481c8baba2b60e8f22179b58cd56'
+    >>> modhex_to_hex('hbhdxx')
+    Traceback (most recent call last):
+        ...
+    ValueError: Illegal modhex character in input
     """
-    return ''.join(map(modhex_to_hex_char, modhex_str.lower()))
+    try:
+        return ''.join(map(modhex_to_hex_char, modhex_str.lower()))
+    except StopIteration:
+        raise ValueError('Illegal modhex character in input')
 
 
 #

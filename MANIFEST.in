@@ -1,0 +1,2 @@
+include CHANGES LICENSE README.rst
+recursive-include docs/*.rst
