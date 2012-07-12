@@ -4,10 +4,10 @@ structures.
 
 >>> key = '0123456789abcdef'
 >>> otp = OTP('user00', 5, 0x0153f8, 0, 0x1234)
->>> token = encode(otp, key, 'mypublicid')
+>>> token = encode_otp(otp, key, 'mypublicid')
 >>> token
 'htikicighdhrhkhehkhfdlukjhukinceifnghknuccvbdciirtdu'
->>> public_id, otp2 = decode(token, key)
+>>> public_id, otp2 = decode_otp(token, key)
 >>> public_id
 'mypublicid'
 >>> otp2 == otp
@@ -25,7 +25,7 @@ from .modhex import modhex, unmodhex
 from Crypto.Cipher import AES
 
 
-__all__ = ['decode', 'encode', 'OTP', 'YubiKey', 'CRCError']
+__all__ = ['decode_otp', 'encode_otp', 'OTP', 'YubiKey', 'CRCError']
 
 
 class CRCError(ValueError):
@@ -35,7 +35,7 @@ class CRCError(ValueError):
     pass
 
 
-def decode(token, key):
+def decode_otp(token, key):
     """
     Decodes a modhex-encoded Yubico OTP value and returns the public ID and the
     unpacked :class:`OTP` object.
@@ -64,7 +64,7 @@ def decode(token, key):
     return (public_id, otp)
 
 
-def encode(otp, key, public_id=''):
+def encode_otp(otp, key, public_id=''):
     """
     Encodes an :class:`OTP` structure, encrypts it with the given key and
     returns the modhex-encoded token.
@@ -196,17 +196,11 @@ class YubiKey(object):
 
         The volatile session counter. This defaults to 0 at init time, but the
         caller can override this.
-
-    .. attribute:: public_id
-
-        An optional public id to identify generated passwords. This will be
-        truncated to 16 bytes.
     """
-    def __init__(self, uid, session, counter=0, public_id=''):
+    def __init__(self, uid, session, counter=0):
         self.uid = uid[:6]
         self.session = min(session, 0x7fff)
         self.counter = min(counter, 0xff)
-        self.public_id = public_id[:16]
 
         self._init_timestamp()
 
