@@ -80,10 +80,3 @@ modhex_to_hex_map = zip(modhex_chars, hex_chars)
 
 hex_to_modhex_char = partial(lookup, hex_to_modhex_map)
 modhex_to_hex_char = partial(lookup, modhex_to_hex_map)
-
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

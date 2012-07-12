@@ -38,10 +38,3 @@ def verify_crc16(data):
     False
     """
     return crc16(data) == 0xf0b8
-
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

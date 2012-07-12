@@ -9,7 +9,7 @@ setup(
     author='Peter Sagerson',
     author_email='psagersccdwvgsz@ignorare.net',
     packages='yubiotp',
-    scripts=['bin/yubiotp', 'bin/yubikey'],
+    scripts=['bin/yubikey'],
     url='https://bitbucket.org/psagers/yubiotp',
     license='LICENSE',
     install_requires=['pycrypto']

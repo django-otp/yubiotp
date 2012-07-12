@@ -1,0 +1,269 @@
+#!/usr/bin/env python
+
+import sys
+from os.path import expanduser
+from optparse import OptionParser, OptionGroup, make_option
+from ConfigParser import SafeConfigParser
+from ConfigParser import NoSectionError, NoOptionError, DuplicateSectionError
+from random import choice
+from binascii import hexlify, unhexlify
+
+from yubiotp.otp import YubiKey, decode, encode
+
+
+def main():
+    parser = Handler.global_option_parser()
+    parser.disable_interspersed_args()
+
+    opts, args = parser.parse_args()
+
+    if len(args) == 0:
+        usage(u'You must choose an action', parser)
+
+    handlers = {
+        'list': ListHandler(),
+        'init': InitHandler(),
+        'delete': DeleteHandler(),
+        'gen': GenHandler(),
+        'parse': ParseHandler(),
+    }
+
+    handler = handlers.get(args[0])
+
+    if handler is None:
+        usage(u'Unknown action: {0}'.format(args[0]), parser)
+    else:
+        handler.run()
+
+
+class Handler(object):
+    name = ''
+    options = [
+        make_option('-c', '--config', dest='config', default='~/.yubikey', metavar='PATH', help=u'A config file to store device state. [%default]'),
+        make_option('-d', '--device', dest='device', default='0', metavar='NAME', help=u'The device number or name to operate on. [%default]'),
+    ]
+    args = ''
+    description = u'Simulates one or more YubiKey devices from which you can generate tokens. Also parses tokens for verification. Choose an action for more information.'
+
+    def run(self):
+        parser = self.make_option_parser()
+
+        opts, args = parser.parse_args()
+
+        self.handle(opts, args)
+
+    def make_option_parser(self):
+        usage = u'%prog [global opts] {0} [any opts]'.format(self.name)
+        if self.args:
+            usage = usage + ' ' + self.args
+
+        parser = OptionParser(usage=usage, description=self.description)
+
+        for option in Handler.options:
+            parser.add_option(option)
+
+        if len(self.options) > 0:
+            group = OptionGroup(parser, self.name)
+            for option in self.options:
+                group.add_option(option)
+
+            parser.add_option_group(group)
+
+        return parser
+
+    def handle(self, opts, args):
+        raise NotImplementedError()
+
+    @classmethod
+    def global_option_parser(cls):
+        parser = OptionParser(
+            usage=u'%prog [global opts] <list|init|delete|gen|parse> [any opts] [args]',
+            description=cls.description,
+            )
+
+        for option in cls.options:
+            parser.add_option(option)
+
+        return parser
+
+
+class ListHandler(Handler):
+    name = 'list'
+    options = []
+    args = ''
+    description = u'List all virtual YubiKey devices'
+
+    def handle(self, opts, args):
+        config = SafeConfigParser()
+        config.read([expanduser(opts.config)])
+        config.write(sys.stdout)
+
+
+class InitHandler(Handler):
+    name = 'init'
+    options = [
+        make_option('-k', '--key', dest='key', help='A hex-encoded 16-byte AES key. If omitted, one will be generated.'),
+        make_option('-u', '--uid', dest='uid', default='', help='A hex-encoded private ID.'),
+        make_option('-s', '--session', dest='session', type='int', default=0, help='The initial session counter. [%default]'),
+    ]
+    description = u'Initialize a new virtual YubiKey'
+
+    def handle(self, opts, args):
+        if opts.key is None:
+            opts.key = ''.join(choice('0123456789abcdef') for x in xrange(32))
+
+        device = Device(opts.config, opts.device)
+        device.create(opts.key, opts.uid, opts.session)
+        device.save()
+
+
+class DeleteHandler(Handler):
+    name = 'delete'
+    options = []
+    args = ''
+    description = u'Remove a virtual YubiKey device'
+
+    def handle(self, opts, args):
+        device = Device(opts.config, opts.device)
+        device.delete()
+        device.save()
+
+
+class GenHandler(Handler):
+    name = 'gen'
+    options = [
+        make_option('-n', '--count', dest='count', type='int', default=1, help=u'Generate multiple tokens. [%default]'),
+        make_option('-i', '--interactive', action='store_true', dest='interactive', help=u'Generate a token for every line read from stdin until interrupted.'),
+    ]
+    args = ''
+    description = u'Generate one or more tokens from the virtual device. This simulates pressing the YubiKey\'s button'
+
+    def handle(self, opts, args):
+        device = Device(opts.config, opts.device)
+
+        for i in xrange(opts.count):
+            print device.gen_token()
+
+        if opts.interactive:
+            try:
+                while True:
+                    sys.stdin.readline()
+                    print device.gen_token()
+            except KeyboardInterrupt:
+                pass
+
+        device.save()
+
+
+class ParseHandler(Handler):
+    name = 'parse'
+    options = []
+    args = 'token ...'
+    description = u'Parse a token generated by the selected virtual device and display its fields.'
+
+    def handle(self, opts, args):
+        device = Device(opts.config, opts.device)
+        key = device.get_config('key', binary=True)
+
+        for token in args[1:]:
+            try:
+                public_id, otp = decode(token, key)
+            except ValueError as e:
+                print e
+            else:
+                print u'uid: {0}'.format(hexlify(otp.uid))
+                print u'session: {0}'.format(otp.session)
+                print u'timestamp: {0}'.format(hex(otp.timestamp))
+                print u'counter: {0}'.format(otp.counter)
+                print u'random: {0}'.format(hex(otp.rand))
+                print
+
+
+def usage(message, parser=None):
+    print message
+    print
+
+    if parser is not None:
+        parser.print_help()
+
+    sys.exit(1)
+
+
+class Device(object):
+    def __init__(self, config_path, name):
+        self.config_path = expanduser(config_path)
+        self.name = name
+        self.section_name = 'device_{0}'.format(name)
+
+        self.config = self._load_config()
+        self.yubikey = None
+
+    def _load_config(self):
+        config = SafeConfigParser()
+        config.read([self.config_path])
+
+        return config
+
+    def create(self, key, uid, session):
+        try:
+            self.config.add_section(self.section_name)
+        except DuplicateSectionError:
+            usage(u'A device named "{0}" already exists.'.format(self.name))
+        else:
+            self.set_config('key', key)
+            self.set_config('uid', uid)
+            self.set_config('session', session)
+
+    def delete(self):
+        try:
+            self.config.remove_section(self.section_name)
+        except NoSectionError:
+            usage(u'The device named "{0}" does not exist.'.format(self.name))
+
+    def gen_token(self):
+        self.ensure_yubikey()
+
+        otp = self.yubikey.generate()
+        key = self.get_config('key', binary=True)
+
+        token = encode(otp, key)
+
+        return token
+
+    def ensure_yubikey(self):
+        if self.yubikey is None:
+            try:
+                self.get_config('key', binary=True)
+                uid = self.get_config('uid', binary=True)
+                session = int(self.get_config('session'))
+            except (NoSectionError, NoOptionError):
+                usage(u'The device named "{0}" does not exist or is corrupt.'.format(self.name))
+            else:
+                self.yubikey = YubiKey(uid=uid, session=session)
+
+        return self.yubikey
+
+    def save(self):
+        if self.yubikey is not None:
+           self.set_config('session', self.yubikey.session + 1)
+
+        with open(self.config_path, 'w') as f:
+            self.config.write(f)
+
+    def get_config(self, key, binary=False):
+        value = self.config.get(self.section_name, key)
+        if binary:
+            value = unhexlify(value)
+
+        return value
+
+    def set_config(self, key, value, binary=False):
+        value = str(value)
+        if binary:
+            value = hexlify(value)
+
+        self.config.set(self.section_name, key, value)
+
+
+if __name__ == '__main__':
+    main()
