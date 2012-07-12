@@ -1,6 +1,17 @@
 """
 Implementation of the Yubico OTP algorithm. This can generate and parse OTP
 structures.
+
+>>> key = '0123456789abcdef'
+>>> otp = OTP('user00', 5, 0x0153f8, 0, 0x1234)
+>>> token = encode(otp, key, 'mypublicid')
+>>> token
+'htikicighdhrhkhehkhfdlukjhukinceifnghknuccvbdciirtdu'
+>>> public_id, otp2 = decode(token, key)
+>>> public_id
+'mypublicid'
+>>> otp2 == otp
+True
 """
 
 from binascii import hexlify
@@ -14,7 +25,7 @@ from .modhex import modhex, unmodhex
 from Crypto.Cipher import AES
 
 
-__all__ = ['parse', 'OTP', 'YubiKey', 'CRCError']
+__all__ = ['decode', 'encode', 'OTP', 'YubiKey', 'CRCError']
 
 
 class CRCError(ValueError):
@@ -24,10 +35,10 @@ class CRCError(ValueError):
     pass
 
 
-def parse(token, key):
+def decode(token, key):
     """
-    Parses a modhex-encoded Yubico OTP value and returns the public ID and the
-    unpacked OTP object.
+    Decodes a modhex-encoded Yubico OTP value and returns the public ID and the
+    unpacked :class:`OTP` object.
 
     token
         A modhex-encoded buffer. Decoded, this should consist of 0-16 bytes of
@@ -35,7 +46,7 @@ def parse(token, key):
     key
         A 16-byte AES key as a binary string.
 
-    Returns ``(identity, otp)``. ``identity`` is the public identity as a
+    Returns ``(public_id, otp)``. ``public_id`` is the public identity as a
     decoded byte string and ``otp`` is an instance of :class:`OTP`.
 
     Exceptions:
@@ -46,15 +57,34 @@ def parse(token, key):
         raise ValueError('Key must be exactly 16 bytes')
 
     buf = unmodhex(token)
-    id_len = len(buf) - 16
-
-    identity = buf[:id_len]
-
-    buf = buf[id_len:]
+    public_id, buf = buf[:-16], buf[-16:]
     buf = AES.new(key, AES.MODE_ECB).decrypt(buf)
     otp = OTP.unpack(buf)
 
-    return (identity, otp)
+    return (public_id, otp)
+
+
+def encode(otp, key, public_id=''):
+    """
+    Encodes an :class:`OTP` structure, encrypts it with the given key and
+    returns the modhex-encoded token.
+
+    otp
+        An instance of :class:`OTP`.
+    key
+        A 16-byte AES key as a binary string.
+    public_id
+        An optional public id. This will be truncated to 16 bytes.
+    """
+    if len(key) != 16:
+        raise ValueError('Key must be exactly 16 bytes')
+
+    buf = otp.pack()
+    buf = AES.new(key, AES.MODE_ECB).encrypt(buf)
+    buf = public_id[:16] + buf
+    token = modhex(buf)
+
+    return token
 
 
 class OTP(object):
@@ -150,10 +180,6 @@ class YubiKey(object):
     A simulated YubiKey device. This can be used to generate a sequence of
     Yubico OTP passwords.
 
-    .. attribute:: key
-
-        An AES key as a binary string.
-
     .. attribute:: uid
 
         The private ID. This should be a string of up to six bytes. The string
@@ -176,32 +202,25 @@ class YubiKey(object):
         An optional public id to identify generated passwords. This will be
         truncated to 16 bytes.
     """
-    def __init__(self, key, uid, session, counter=0, public_id=''):
-        if len(key) != 16:
-            raise ValueError('key must be exactly 16 bytes')
-
-        self.key = key
-        self.uid = uid
-        self.session = session if (session < 0x7fff) else 0x7fff
-        self.counter = counter
+    def __init__(self, uid, session, counter=0, public_id=''):
+        self.uid = uid[:6]
+        self.session = min(session, 0x7fff)
+        self.counter = min(counter, 0xff)
         self.public_id = public_id[:16]
 
         self._init_timestamp()
 
     def generate(self):
         """
-        Generate a YubiKey token. This simluates pressing the YubiKey button
-        and returns the encoded token.
+        Return a new OTP object, as if the user had pressed the YubiKey button.
         """
         otp = OTP(self.uid, self.session, self._timestamp(), self.counter, randrange(0xffff))
         self._increment_counter()
 
-        buf = AES.new(self.key, mode=AES.MODE_ECB).encrypt(otp.pack())
+        return otp
 
-        return modhex(self.public_id + buf)
-
-    def _init_timestamp(self, timestamp):
-        self._timestamp_base = randrange(0xffffff)
+    def _init_timestamp(self):
+        self._timestamp_base = randrange(0x00ffff)
         self._timestamp_start = datetime.now()
 
     def _timestamp(self):
@@ -215,7 +234,7 @@ class YubiKey(object):
         return (self._timestamp_base + (delta * 8)) % 0xffffff
 
     def _increment_counter(self):
-        if self.counter == 0xff:
+        if self.counter >= 0xff:
             self._increment_session()
             self.counter = 0
         else:
