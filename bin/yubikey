@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 
+"""
+This is a command-line interface to the yubiotp package. Its primary function
+is to simulate a YubiKey device for testing purposes. It also includes some
+utilities for things like converting to and from modhex.
+"""
 import sys
 from os.path import expanduser
-from optparse import OptionParser, OptionGroup, make_option
+from optparse import OptionParser, OptionGroup, Option, OptionValueError
 from ConfigParser import SafeConfigParser
 from ConfigParser import NoSectionError, NoOptionError, DuplicateSectionError
 from random import choice
 from binascii import hexlify, unhexlify
 
-from yubiotp.otp import YubiKey, decode, encode
+from yubiotp.modhex import modhex, unmodhex, modhex_to_hex, hex_to_modhex
+from yubiotp.otp import YubiKey, decode_otp, encode_otp
 
 
 def main():
@@ -26,6 +32,8 @@ def main():
         'delete': DeleteHandler(),
         'gen': GenHandler(),
         'parse': ParseHandler(),
+
+        'modhex': ModhexHandler(),
     }
 
     handler = handlers.get(args[0])
@@ -36,11 +44,31 @@ def main():
         handler.run()
 
 
+def check_hex_value(option, opt, value):
+    try:
+        return unhexlify(value)
+    except TypeError as e:
+        raise OptionValueError(str(e))
+
+
+class YubiKeyOption(Option):
+    """
+    Custom optparse Option class that adds the 'hex' value type. Values of this
+    type are expected to be strings of hex digits, which will be decoded into
+    binary strings before being stored.
+    """
+    TYPES = Option.TYPES + ('hex',)
+    TYPE_CHECKER = dict(Option.TYPE_CHECKER, hex=check_hex_value)
+
+
+make_option = YubiKeyOption
+
+
 class Handler(object):
     name = ''
     options = [
-        make_option('-c', '--config', dest='config', default='~/.yubikey', metavar='PATH', help=u'A config file to store device state. [%default]'),
-        make_option('-d', '--device', dest='device', default='0', metavar='NAME', help=u'The device number or name to operate on. [%default]'),
+        make_option('-f', '--config', dest='config', default='~/.yubikey', metavar='PATH', help=u'A config file to store device state. [%default]'),
+        make_option('-n', '--name', dest='device_name', default='0', metavar='NAME', help=u'The device number or name to operate on. [%default]'),
     ]
     args = ''
     description = u'Simulates one or more YubiKey devices from which you can generate tokens. Also parses tokens for verification. Choose an action for more information.'
@@ -77,7 +105,7 @@ class Handler(object):
     @classmethod
     def global_option_parser(cls):
         parser = OptionParser(
-            usage=u'%prog [global opts] <list|init|delete|gen|parse> [any opts] [args]',
+            usage=u'%prog [global opts] <list|init|delete|gen|parse|modhex> [any opts] [args]',
             description=cls.description,
             )
 
@@ -102,18 +130,20 @@ class ListHandler(Handler):
 class InitHandler(Handler):
     name = 'init'
     options = [
-        make_option('-k', '--key', dest='key', help='A hex-encoded 16-byte AES key. If omitted, one will be generated.'),
-        make_option('-u', '--uid', dest='uid', default='', help='A hex-encoded private ID.'),
+        make_option('-p', '--public', dest='public_id', type='hex', default='', help=u'A hex-encoded public ID (up to 16 bytes)'),
+        make_option('-P', '--public-ascii', dest='public_id', help=u'An ASCII public ID (up to 16 characters).'),
+        make_option('-k', '--key', dest='key', type='hex', help='A hex-encoded 16-byte AES key. If omitted, one will be generated.'),
+        make_option('-u', '--uid', dest='uid', type='hex', default='', help='A hex-encoded private ID.'),
         make_option('-s', '--session', dest='session', type='int', default=0, help='The initial session counter. [%default]'),
     ]
     description = u'Initialize a new virtual YubiKey.'
 
     def handle(self, opts, args):
         if opts.key is None:
-            opts.key = ''.join(choice('0123456789abcdef') for x in xrange(32))
+            opts.key = ''.join(chr(choice(xrange(0xff))) for x in xrange(16))
 
-        device = Device(opts.config, opts.device)
-        device.create(opts.key, opts.uid, opts.session)
+        device = Device(opts.config, opts.device_name)
+        device.create(opts.public_id, opts.key, opts.uid, opts.session)
         device.save()
 
 
@@ -124,7 +154,7 @@ class DeleteHandler(Handler):
     description = u'Remove a virtual YubiKey device.'
 
     def handle(self, opts, args):
-        device = Device(opts.config, opts.device)
+        device = Device(opts.config, opts.device_name)
         device.delete()
         device.save()
 
@@ -132,14 +162,14 @@ class DeleteHandler(Handler):
 class GenHandler(Handler):
     name = 'gen'
     options = [
-        make_option('-n', '--count', dest='count', type='int', default=1, help=u'Generate multiple tokens. [%default]'),
+        make_option('-c', '--count', dest='count', type='int', default=1, help=u'Generate multiple tokens. [%default]'),
         make_option('-i', '--interactive', action='store_true', dest='interactive', help=u'Generate a token for every line read from stdin until interrupted.'),
     ]
     args = ''
     description = u'Generate one or more tokens from the virtual device. This simulates pressing the YubiKey\'s button.'
 
     def handle(self, opts, args):
-        device = Device(opts.config, opts.device)
+        device = Device(opts.config, opts.device_name)
 
         for i in xrange(opts.count):
             print device.gen_token()
@@ -162,21 +192,52 @@ class ParseHandler(Handler):
     description = u'Parse tokens generated by the selected virtual device and display its fields.'
 
     def handle(self, opts, args):
-        device = Device(opts.config, opts.device)
+        device = Device(opts.config, opts.device_name)
         key = device.get_config('key', binary=True)
 
         for token in args[1:]:
             try:
-                public_id, otp = decode(token, key)
+                public_id, otp = decode_otp(token, key)
             except ValueError as e:
                 print e
             else:
+                if all(ord(c) in xrange(0x20, 0x7f) for c in public_id):
+                    print u'public_id: {0} ({1})'.format(hexlify(public_id), public_id)
+                else:
+                    print u'public_id: {0}'.format(hexlify(public_id))
+
                 print u'uid: {0}'.format(hexlify(otp.uid))
                 print u'session: {0}'.format(otp.session)
                 print u'timestamp: {0}'.format(hex(otp.timestamp))
                 print u'counter: {0}'.format(otp.counter)
                 print u'random: {0}'.format(hex(otp.rand))
                 print
+
+
+class ModhexHandler(Handler):
+    name = 'modhex'
+    options = [
+        make_option('-d', '--decode', action='store_true', dest='decode', help=u'Decode from modhex. Default is to encode to modhex.'),
+        make_option('-H', '--hex', action='store_true', dest='hex', help=u'Encode to or decode from a string of hex digits. Default is a raw string.'),
+    ]
+    args = 'input ...'
+    description = u'Encode (default) or decode a modhex string.'
+
+    def handle(self, opts, args):
+        for arg in args[1:]:
+            try:
+                if opts.decode:
+                    if opts.hex:
+                        print modhex_to_hex(arg)
+                    else:
+                        print unmodhex(arg)
+                else:
+                    if opts.hex:
+                        print hex_to_modhex(arg)
+                    else:
+                        print modhex(arg)
+            except ValueError as e:
+                print >>sys.stderr, e
 
 
 def usage(message, parser=None):
@@ -204,14 +265,18 @@ class Device(object):
 
         return config
 
-    def create(self, key, uid, session):
+    def create(self, public_id, key, uid, session):
+        if len(key) != 16:
+            raise ValueError('AES keys must be exactly 16 bytes')
+
         try:
             self.config.add_section(self.section_name)
         except DuplicateSectionError:
             usage(u'A device named "{0}" already exists.'.format(self.name))
         else:
-            self.set_config('key', key)
-            self.set_config('uid', uid)
+            self.set_config('public_id', public_id, binary=True)
+            self.set_config('key', key, binary=True)
+            self.set_config('uid', uid, binary=True)
             self.set_config('session', session)
 
     def delete(self):
@@ -225,17 +290,19 @@ class Device(object):
 
         otp = self.yubikey.generate()
         key = self.get_config('key', binary=True)
+        public_id = self.get_config('public_id', binary=True)
 
-        token = encode(otp, key)
+        token = encode_otp(otp, key, public_id=public_id)
 
         return token
 
     def ensure_yubikey(self):
         if self.yubikey is None:
             try:
-                self.get_config('key', binary=True)
                 uid = self.get_config('uid', binary=True)
                 session = int(self.get_config('session'))
+
+                self.get_config('key', binary=True)
             except (NoSectionError, NoOptionError):
                 usage(u'The device named "{0}" does not exist or is corrupt.'.format(self.name))
             else:
