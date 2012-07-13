@@ -178,7 +178,7 @@ class OTP(object):
 class YubiKey(object):
     """
     A simulated YubiKey device. This can be used to generate a sequence of
-    Yubico OTP passwords.
+    Yubico OTP tokens.
 
     .. attribute:: uid
 

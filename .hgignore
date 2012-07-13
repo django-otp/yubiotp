@@ -1,1 +1,3 @@
-^docs/build
+^MANIFEST$
+^dist/
+^docs/build/
