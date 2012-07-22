@@ -25,11 +25,16 @@ def main():
     if options.base_url:
         client.base_url = options.base_url
 
+    is_valid = True
+
     for otp in args:
         if options.noexec:
             print(client.url(otp))
         else:
-            verify_otp(client, otp, options.verbose)
+            if not verify_otp(client, otp, options.verbose):
+                is_valid = False
+
+    sys.exit(0 if is_valid else 2)
 
 
 def parse_args():
@@ -60,10 +65,23 @@ def verify_otp(client, otp, verbose=False):
     if verbose:
         print(client.url(otp), file=sys.stderr)
         print(file=sys.stderr)
-        print(response.raw, file=sys.stderr)
-        print('public_id: {0}'.format(hexlify(response.public_id)), file=sys.stderr)
 
-    print('{0}: {1}'.format(otp, response.status()))
+        for line in filter(None, response.raw.splitlines()):
+            print(line, file=sys.stderr)
+        print(file=sys.stderr)
+
+        if response.public_id is not None:
+            print('public_id: {0}'.format(hexlify(response.public_id)), file=sys.stderr)
+            print(file=sys.stderr)
+
+    if response.is_ok():
+        is_valid = True
+        print('{0}: OK (strict)'.format(otp))
+    else:
+        is_valid = False
+        print('{0}: {1}'.format(otp, response.status()))
+
+    return is_valid
 
 
 if __name__ == '__main__':

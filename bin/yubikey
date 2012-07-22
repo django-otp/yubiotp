@@ -208,9 +208,9 @@ class ParseHandler(Handler):
 
                 print u'uid: 0x{0:x}'.format(otp.uid)
                 print u'session: {0}'.format(otp.session)
-                print u'timestamp: {0}'.format(hex(otp.timestamp))
+                print u'timestamp: 0x{0:x}'.format(otp.timestamp)
                 print u'counter: {0}'.format(otp.counter)
-                print u'random: {0}'.format(hex(otp.rand))
+                print u'random: 0x{0:x}'.format(otp.rand)
                 print
 
 
