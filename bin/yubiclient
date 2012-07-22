@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import sys
+from base64 import b64decode
+from binascii import hexlify
+from optparse import OptionParser
+
+from yubiotp.client import YubiClient10, YubiClient11, YubiClient20
+
+
+def main():
+    options, args = parse_args()
+
+    api_key = b64decode(options.api_key) if (options.api_key is not None) else None
+
+    if options.version == '1.0':
+        client = YubiClient10(options.api_id, api_key, options.ssl)
+    elif options.version == '1.1':
+        client = YubiClient11(options.api_id, api_key, options.ssl, options.timestamp)
+    elif options.version == '2.0':
+        client = YubiClient20(options.api_id, api_key, options.ssl, options.timestamp, options.sl, options.timeout)
+
+    if options.base_url:
+        client.base_url = options.base_url
+
+    for otp in args:
+        if options.noexec:
+            print(client.url(otp))
+        else:
+            verify_otp(client, otp, options.verbose)
+
+
+def parse_args():
+    parser = OptionParser(
+        usage=u'%prog [options] otp ...',
+        description=u"Verifies one or more YubiKey OTP tokens against a YubiCloud service. If you don't supply an API id and key, signatures will be ignored."
+    )
+
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose', help=u'Print request URL and full responst to stderr.')
+    parser.add_option('-n', '--noexec', action='store_true', dest='noexec', help=u"Don't send the request, just print the URL.")
+    parser.add_option('-V', '--version', dest='version', type='choice', choices=['1.0', '1.1', '2.0'], default='2.0', help=u'The API version to use (1.0, 1.1, 2.0). [%default]')
+    parser.add_option('-u', '--base-url', dest='base_url', help=u'Base URL of the api. Defaults to a version-appropriate URL on api.yubico.com.')
+    parser.add_option('-s', '--ssl', action='store_true', dest='ssl', help=u'Use an https url by default.')
+    parser.add_option('-i', '--api-id', dest='api_id', default='1', help=u'Your API ID. [%default]')
+    parser.add_option('-k', '--api-key', dest='api_key', help=u'Your base64-encoded API key.')
+    parser.add_option('-t', '--timestamp', action='store_true', dest='timestamp', help=u'(Version 1.1+) include timestamp and counter information in response.')
+    parser.add_option('--sl', dest='sl', help=u'(Version 2.0+) Request server syncing.')
+    parser.add_option('--timeout', dest='timeout', help=u'(Version 2.0+) Seconds to wait for sync response.')
+
+    options, args = parser.parse_args()
+
+    return options, args
+
+
+def verify_otp(client, otp, verbose=False):
+    response = client.verify(otp)
+
+    if verbose:
+        print(client.url(otp), file=sys.stderr)
+        print(file=sys.stderr)
+        print(response.raw, file=sys.stderr)
+        print('public_id: {0}'.format(hexlify(response.public_id)), file=sys.stderr)
+
+    print('{0}: {1}'.format(otp, response.status()))
+
+
+if __name__ == '__main__':
+    main()

@@ -5,13 +5,13 @@ from distutils.core import setup
 
 setup(
     name='YubiOTP',
-    version='0.1.0',
-    description='An implementation of the Yubico OTP algorithm, as used in YubiKey devices.',
+    version='0.2.0',
+    description='A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service.',
     long_description=open('README').read(),
     author='Peter Sagerson',
     author_email='psagersccdwvgsz@ignorare.net',
     packages=['yubiotp'],
-    scripts=['bin/yubikey'],
+    scripts=['bin/yubikey', 'bin/yubiclient'],
     url='https://bitbucket.org/psagers/yubiotp',
     license='BSD',
     install_requires=['pycrypto'],
