@@ -4,30 +4,10 @@ YubiOTP
 .. include:: ../../README
 
 .. toctree::
-    :maxdepth: 1
-
+    otp
+    client
+    utils
     changes
-
-
-yubiotp.otp
------------
-
-.. automodule:: yubiotp.otp
-    :members:
-
-
-yubiotp.modhex
---------------
-
-.. automodule:: yubiotp.modhex
-    :members:
-
-
-yubiotp.crc
------------
-
-.. automodule:: yubiotp.crc
-    :members:
 
 
 License
