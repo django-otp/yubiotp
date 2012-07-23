@@ -13,8 +13,3 @@ v0.2.0, July 21, 2012
 ---------------------
 
 Added the Yubico web service client.
-
-.. warning::
-
-    The ``uid`` field of :class:`~yubiotp.otp.OTP` changed from a 6-byte binary
-    string to an integer.

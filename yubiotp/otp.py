@@ -4,12 +4,12 @@ structures.
 
 >>> key = '0123456789abcdef'
 >>> otp = OTP(0xba9876543210, 5, 0x0153f8, 0, 0x1234)
->>> token = encode_otp(otp, key, 'mypublicid')
+>>> token = encode_otp(otp, key, 'cclngiuv')
 >>> token
-'htikicighdhrhkhehkhfefnijnthcvncrgbrrklcfrhndchilifi'
+'cclngiuvefnijnthcvncrgbrrklcfrhndchilifi'
 >>> public_id, otp2 = decode_otp(token, key)
 >>> public_id
-'mypublicid'
+'cclngiuv'
 >>> otp2 == otp
 True
 """
@@ -19,7 +19,7 @@ from random import randrange
 from struct import pack, unpack
 
 from .crc import crc16, verify_crc16
-from .modhex import modhex, unmodhex
+from .modhex import modhex, unmodhex, is_modhex
 
 from Crypto.Cipher import AES
 
@@ -44,7 +44,7 @@ def decode_otp(token, key):
         followed by 16 bytes of encrypted OTP data.
     :param str key: A 16-byte AES key as a binary string.
 
-    :returns: The public ID as a decoded string and the OTP structure.
+    :returns: The public ID in its modhex-encoded form and the OTP structure.
     :rtype: (str, :class:`OTP`)
 
     :raises: ``ValueError`` if the string can not be decoded.
@@ -54,8 +54,9 @@ def decode_otp(token, key):
     if len(key) != 16:
         raise ValueError('Key must be exactly 16 bytes')
 
+    public_id, token = token[:-32], token[-32:]
+
     buf = unmodhex(token)
-    public_id, buf = buf[:-16], buf[-16:]
     buf = AES.new(key, AES.MODE_ECB).decrypt(buf)
     otp = OTP.unpack(buf)
 
@@ -71,30 +72,25 @@ def encode_otp(otp, key, public_id=''):
     :type otp: :class:`OTP`
 
     :param str key: A 16-byte AES key as a binary string.
-    :param str public_id: An optional public id. This will be truncated to 16
-        bytes.
+    :param str public_id: An optional public id, modhex-encoded. This can be at
+        most 32 characters.
+
+    :raises: ValueError if any parameters are out of range.
     """
     if len(key) != 16:
         raise ValueError('Key must be exactly 16 bytes')
 
+    if not is_modhex(public_id):
+        raise ValueError('public_id must be a valid modhex string')
+
+    if len(public_id) > 32:
+        raise ValueError('public_id may be no longer than 32 modhex characters')
+
     buf = otp.pack()
     buf = AES.new(key, AES.MODE_ECB).encrypt(buf)
-    buf = public_id[:16] + buf
     token = modhex(buf)
 
-    return token
-
-
-def public_id(token):
-    """
-    Returns the fully decoded public ID from an otp token.
-
-    :param str token: A monhex-encoded YubiKey OTP token.
-
-    :returns: The public ID as a fully decoded string.
-    :rtype: str
-    """
-    return unmodhex(token[:-32])
+    return public_id + token
 
 
 class OTP(object):
@@ -102,7 +98,7 @@ class OTP(object):
     A single YubiKey OTP. This is typically instantiated by parsing an encoded
     OTP.
 
-    :param int uid: The private ID in [0..2^48].
+    :param str uid: The private ID as a 6-byte binary string.
     :param int session: The non-volatile usage counter.
     :param int timestamp: An integer in [0..2^24].
     :param int counter: The volatile usage counter.
@@ -133,14 +129,14 @@ class OTP(object):
         encoded.
         """
         fields = (
-            self.uid & 0xffffffff, (self.uid >> 32) & 0xffff,
+            self.uid,
             self.session,
             self.timestamp & 0xff, (self.timestamp >> 8) & 0xffff,
             self.counter,
             self.rand,
         )
 
-        buf = pack('<IHHBHBH', *fields)
+        buf = pack('<6s H BH B H', *fields)
 
         crc = ~crc16(buf) & 0xffff
         buf += pack('<H', crc)
@@ -159,9 +155,8 @@ class OTP(object):
         if not verify_crc16(buf):
             raise CRCError('OTP checksum is invalid')
 
-        u1, u2, session, t1, t2, counter, rand, crc = unpack('<IHHBHBHH', buf)
+        uid, session, t1, t2, counter, rand, crc = unpack('<6s H BH B H H', buf)
 
-        uid = (u2 << 32) | u1
         timestamp = (t2 << 8) | t1
 
         return cls(uid, session, timestamp, counter, rand)
@@ -172,7 +167,7 @@ class YubiKey(object):
     A simulated YubiKey device. This can be used to generate a sequence of
     Yubico OTP tokens.
 
-    :param int uid: The private ID in [0..2^48].
+    :param int uid: The private ID as a 6-byte binary string.
     :param int session: The non-volatile usage counter. It is the caller's
         responsibility to persist this. Note that this may increment if the
         volatile counter wraps, so you should only increment and persist this

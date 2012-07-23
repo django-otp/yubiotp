@@ -6,8 +6,6 @@ import string
 from urllib import urlencode
 from urllib2 import urlopen
 
-from .modhex import unmodhex
-
 
 class YubiClient10(object):
     """
@@ -27,7 +25,7 @@ class YubiClient10(object):
     """
     _NONCE_CHARS = string.ascii_letters + string.digits
 
-    def __init__(self, api_id=1, api_key=None, ssl=True):
+    def __init__(self, api_id=1, api_key=None, ssl=False):
         self.api_id = api_id
         self.api_key = api_key
         self.ssl = ssl
@@ -126,7 +124,7 @@ class YubiClient11(YubiClient10):
         custom validation service. Defaults to
         ``'http[s]://api.yubico.com/wsapi/verify'``.
     """
-    def __init__(self, api_id=1, api_key=None, ssl=True, timestamp=False):
+    def __init__(self, api_id=1, api_key=None, ssl=False, timestamp=False):
         super(YubiClient11, self).__init__(api_id, api_key, ssl)
 
         self.timestamp = timestamp
@@ -160,7 +158,7 @@ class YubiClient20(YubiClient11):
         custom validation service. Defaults to
         ``'http[s]://api.yubico.com/wsapi/2.0/verify'``.
     """
-    def __init__(self, api_id=1, api_key=None, ssl=True, timestamp=False, sl=None, timeout=None):
+    def __init__(self, api_id=1, api_key=None, ssl=False, timestamp=False, sl=None, timeout=None):
         super(YubiClient20, self).__init__(api_id, api_key, ssl, timestamp)
 
         self.sl = sl
@@ -305,13 +303,12 @@ class YubiResponse(object):
     @property
     def public_id(self):
         """
-        Returns the public id of the response token as a 48-bit unsigned int.
+        Returns the public id of the response token as a modhex string.
 
-        :returns: The fully decoded public ID portion of ``token``, if any.
         :rtype: str or ``None``.
         """
         try:
-            public_id = unmodhex(self.fields['otp'])[:-16]
+            public_id = self.fields['otp'][:-32]
         except KeyError:
             public_id = None
 

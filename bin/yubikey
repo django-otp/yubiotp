@@ -46,9 +46,20 @@ def main():
 
 def check_hex_value(option, opt, value):
     try:
-        return unhexlify(value)
+        unhexlify(value)
     except TypeError as e:
         raise OptionValueError(str(e))
+
+    return value
+
+
+def check_modhex_value(option, opt, value):
+    try:
+        unmodhex(value)
+    except ValueError as e:
+        raise OptionValueError(str(e))
+
+    return value
 
 
 class YubiKeyOption(Option):
@@ -57,8 +68,10 @@ class YubiKeyOption(Option):
     type are expected to be strings of hex digits, which will be decoded into
     binary strings before being stored.
     """
-    TYPES = Option.TYPES + ('hex',)
-    TYPE_CHECKER = dict(Option.TYPE_CHECKER, hex=check_hex_value)
+    TYPES = Option.TYPES + ('hex', 'modhex')
+    TYPE_CHECKER = dict(Option.TYPE_CHECKER,
+                        hex=check_hex_value,
+                        modhex=check_modhex_value)
 
 
 make_option = YubiKeyOption
@@ -114,6 +127,10 @@ class Handler(object):
 
         return parser
 
+    @staticmethod
+    def random_hex(count):
+        return ''.join(choice('0123456789abcdef') for i in xrange(count*2))
+
 
 class ListHandler(Handler):
     name = 'list'
@@ -130,17 +147,19 @@ class ListHandler(Handler):
 class InitHandler(Handler):
     name = 'init'
     options = [
-        make_option('-p', '--public', dest='public_id', type='hex', default='', help=u'A hex-encoded public ID (up to 16 bytes)'),
-        make_option('-P', '--public-ascii', dest='public_id', help=u'An ASCII public ID (up to 16 characters).'),
+        make_option('-p', '--public', dest='public_id', type='modhex', default='', help=u'A modhex-encoded public ID (up to 16 bytes)'),
         make_option('-k', '--key', dest='key', type='hex', help='A hex-encoded 16-byte AES key. If omitted, one will be generated.'),
-        make_option('-u', '--uid', dest='uid', type='int', default=0, help='A private ID.'),
+        make_option('-u', '--uid', dest='uid', type='hex', help='A hex-encoded 6-byte private ID. If omitted, one will be generated.'),
         make_option('-s', '--session', dest='session', type='int', default=0, help='The initial session counter. [%default]'),
     ]
     description = u'Initialize a new virtual YubiKey.'
 
     def handle(self, opts, args):
         if opts.key is None:
-            opts.key = ''.join(chr(choice(xrange(0xff))) for x in xrange(16))
+            opts.key = self.random_hex(16)
+
+        if opts.uid is None:
+            opts.uid = self.random_hex(6)
 
         device = Device(opts.config, opts.device_name)
         device.create(opts.public_id, opts.key, opts.uid, opts.session)
@@ -193,7 +212,7 @@ class ParseHandler(Handler):
 
     def handle(self, opts, args):
         device = Device(opts.config, opts.device_name)
-        key = device.get_config('key', binary=True)
+        key = device.get_config('key', unhex=True)
 
         for token in args[1:]:
             try:
@@ -201,12 +220,8 @@ class ParseHandler(Handler):
             except ValueError as e:
                 print e
             else:
-                if all(ord(c) in xrange(0x20, 0x7f) for c in public_id):
-                    print u'public_id: {0} ({1})'.format(hexlify(public_id), public_id)
-                else:
-                    print u'public_id: {0}'.format(hexlify(public_id))
-
-                print u'uid: 0x{0:x}'.format(otp.uid)
+                print u'public_id: {0}'.format(public_id)
+                print u'uid: {0}'.format(hexlify(otp.uid))
                 print u'session: {0}'.format(otp.session)
                 print u'timestamp: 0x{0:x}'.format(otp.timestamp)
                 print u'counter: {0}'.format(otp.counter)
@@ -266,7 +281,7 @@ class Device(object):
         return config
 
     def create(self, public_id, key, uid, session):
-        if len(key) != 16:
+        if len(key) != 32:
             raise ValueError('AES keys must be exactly 16 bytes')
 
         try:
@@ -274,8 +289,8 @@ class Device(object):
         except DuplicateSectionError:
             usage(u'A device named "{0}" already exists.'.format(self.name))
         else:
-            self.set_config('public_id', public_id, binary=True)
-            self.set_config('key', key, binary=True)
+            self.set_config('public_id', public_id)
+            self.set_config('key', key)
             self.set_config('uid', uid)
             self.set_config('session', session)
 
@@ -289,8 +304,8 @@ class Device(object):
         self.ensure_yubikey()
 
         otp = self.yubikey.generate()
-        key = self.get_config('key', binary=True)
-        public_id = self.get_config('public_id', binary=True)
+        key = self.get_config('key', unhex=True)
+        public_id = self.get_config('public_id')
 
         token = encode_otp(otp, key, public_id=public_id)
 
@@ -299,12 +314,12 @@ class Device(object):
     def ensure_yubikey(self):
         if self.yubikey is None:
             try:
-                uid = int(self.get_config('uid'))
+                uid = self.get_config('uid', unhex=True)
                 session = int(self.get_config('session'))
 
-                self.get_config('key', binary=True)
-            except StandardError:
-                usage(u'The device named "{0}" does not exist or is corrupt.'.format(self.name))
+                self.get_config('key')
+            except StandardError as e:
+                usage(u'The device named "{0}" does not exist or is corrupt. ({1})'.format(self.name, e))
             else:
                 self.yubikey = YubiKey(uid=uid, session=session)
 
@@ -317,19 +332,15 @@ class Device(object):
         with open(self.config_path, 'w') as f:
             self.config.write(f)
 
-    def get_config(self, key, binary=False):
+    def get_config(self, key, unhex=False):
         value = self.config.get(self.section_name, key)
-        if binary:
+        if unhex:
             value = unhexlify(value)
 
         return value
 
-    def set_config(self, key, value, binary=False):
-        value = str(value)
-        if binary:
-            value = hexlify(value)
-
-        self.config.set(self.section_name, key, value)
+    def set_config(self, key, value):
+        self.config.set(self.section_name, key, str(value))
 
 
 if __name__ == '__main__':
