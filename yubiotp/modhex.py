@@ -11,7 +11,7 @@ which uses keyboard-independent characters.
 from binascii import hexlify, unhexlify
 from functools import partial
 
-__all__ = ['modhex', 'unmodhex', 'hex_to_modhex', 'modhex_to_hex']
+__all__ = ['modhex', 'unmodhex', 'is_modhex', 'hex_to_modhex', 'modhex_to_hex']
 
 
 def modhex(data):
@@ -31,6 +31,24 @@ def unmodhex(encoded):
     'abcdefghijklmnop'
     """
     return unhexlify(modhex_to_hex(encoded))
+
+def is_modhex(encoded):
+    """
+    Returns ``True`` iff the given string is valid modhex.
+
+    >>> is_modhex('cbdefghijklnrtuv')
+    True
+    >>> is_modhex('cbdefghijklnrtuvv')
+    False
+    >>> is_modhex('cbdefghijklnrtuvyy')
+    False
+    """
+    if any(c not in modhex_chars for c in encoded):
+        return False
+    elif len(encoded) % 2 != 0:
+        return False
+    else:
+        return True
 
 def hex_to_modhex(hex_str):
     """
