@@ -67,19 +67,20 @@ class YubiClient10(object):
 
     _base_url = None
 
-    def _get_base_url(self):
+    @property
+    def base_url(self):
         if self._base_url is None:
             self._base_url = self.default_base_url()
 
         return self._base_url
 
-    def _set_base_url(self, url):
+    @base_url.setter
+    def base_url(self, url):
         self._base_url = url
 
-    def _del_base_url(self):
+    @base_url.deleter
+    def base_url(self):
         delattr(self, '_base_url')
-
-    base_url = property(_get_base_url, _set_base_url, _del_base_url)
 
     def default_base_url(self):
         if self.ssl:
@@ -232,7 +233,9 @@ class YubiResponse(object):
         """
         Performs all validity checks (signature, token, and nonce).
 
-        :param bool strict: If ``True``, all validity checks
+        :param bool strict: If ``True``, all validity checks must pass
+            unambiguously. Otherwise, this only requires that no validity check
+            fails.
         :returns: ``True`` if none of the validity checks fail.
         :rtype: bool
         """

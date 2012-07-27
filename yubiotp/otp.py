@@ -2,11 +2,12 @@
 Implementation of the Yubico OTP algorithm. This can generate and parse OTP
 structures.
 
+>>> from binascii import unhexlify
 >>> key = '0123456789abcdef'
->>> otp = OTP(0xba9876543210, 5, 0x0153f8, 0, 0x1234)
+>>> otp = OTP(unhexlify('0123456789ab'), 5, 0x0153f8, 0, 0x1234)
 >>> token = encode_otp(otp, key, 'cclngiuv')
 >>> token
-'cclngiuvefnijnthcvncrgbrrklcfrhndchilifi'
+'cclngiuvttkhthcilurtkerbjnnkljfkjccklkhl'
 >>> public_id, otp2 = decode_otp(token, key)
 >>> public_id
 'cclngiuv'
