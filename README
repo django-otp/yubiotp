@@ -1,4 +1,4 @@
-.. vim:ft=rst
+.. vim: ft=rst nospell tw=80
 
 This is a library for verifying `YubiKey <http://www.yubico.com/yubikey>`_ OTP
 tokens. It includes both the low-level implementation for verifying tokens

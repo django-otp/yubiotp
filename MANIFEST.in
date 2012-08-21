@@ -1,3 +1,6 @@
 include CHANGES LICENSE README
-recursive-include docs/source *
-include docs/Makefile
+
+recursive-include docs *.rst *.py Makefile
+prune docs/build 
+
+global-exclude .DS_Store *.pyc *.pyo .*.sw?
