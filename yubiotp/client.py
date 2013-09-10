@@ -16,7 +16,7 @@ class YubiClient10(object):
     http://code.google.com/p/yubikey-val-server-php/wiki/ValidationProtocolV10
 
     :param int api_id: Your API id.
-    :param str api_key: Your base64-encoded API key.
+    :param bytes api_key: Your base64-encoded API key.
     :param bool ssl: ``True`` if we should use https URLs by default.
 
     .. attribute:: base_url
@@ -46,7 +46,7 @@ class YubiClient10(object):
 
         url = self.url(token, nonce)
         stream = urlopen(url)
-        response = YubiResponse(stream.read(), self.api_key, token, nonce)
+        response = YubiResponse(stream.read().decode('utf-8'), self.api_key, token, nonce)
         stream.close()
 
         return response
@@ -116,7 +116,7 @@ class YubiClient11(YubiClient10):
     http://code.google.com/p/yubikey-val-server-php/wiki/ValidationProtocolV11
 
     :param int api_id: Your API id.
-    :param str api_key: Your base64-encoded API key.
+    :param bytes api_key: Your base64-encoded API key.
     :param bool ssl: ``True`` if we should use https URLs by default.
     :param bool timestamp: ``True`` if we want the server to include timestamp
         and counter information in the response.
@@ -148,7 +148,7 @@ class YubiClient20(YubiClient11):
     http://code.google.com/p/yubikey-val-server-php/wiki/ValidationProtocolV20
 
     :param int api_id: Your API id.
-    :param str api_key: Your base64-encoded API key.
+    :param bytes api_key: Your base64-encoded API key.
     :param bool ssl: ``True`` if we should use https URLs by default.
     :param bool timestamp: ``True`` if we want the server to include timestamp
         and counter information in the response.
@@ -210,7 +210,7 @@ class YubiResponse(object):
         self.fields = dict(tuple(line.split('=', 1)) for line in self.raw.splitlines() if '=' in line)
 
         if 'h' in self.fields:
-            self.signature = b64decode(self.fields['h'])
+            self.signature = b64decode(self.fields['h'].encode())
             del self.fields['h']
 
     def is_ok(self):
@@ -226,8 +226,10 @@ class YubiResponse(object):
         If the response is valid, this returns the value of the status field.
         Otherwise, it returns the special status ``'BAD_RESPONSE'``
         """
-        if self.is_valid(strict=False):
-            return self.fields.get('status')
+        status = self.fields.get('status')
+
+        if status == 'BAD_SIGNATURE' or self.is_valid(strict=False):
+            return status
         else:
             return 'BAD_RESPONSE'
 
@@ -330,12 +332,12 @@ def param_signature(params, api_key):
         urllib.urlencode.
     :type params: list of 2-tuples
 
-    :param str api_key: The Yubico API key (raw, not base64-encoded).
+    :param bytes api_key: The Yubico API key (raw, not base64-encoded).
 
     :returns: The parameter signature (raw, not base64-encoded).
-    :rtype: str
+    :rtype: bytes
     """
     param_string = '&'.join('{0}={1}'.format(k, v) for k, v in sorted(params))
-    signature = hmac.new(api_key, param_string, sha1).digest()
+    signature = hmac.new(api_key, param_string.encode('utf-8'), sha1).digest()
 
     return signature
