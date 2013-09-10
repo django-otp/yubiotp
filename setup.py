@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
+
+try:
+    import unittest2  # noqa
+except ImportError:
+    test_loader = 'unittest:TestLoader'
+else:
+    test_loader = 'unittest2:TestLoader'
 
 
 setup(
@@ -14,13 +21,24 @@ setup(
     scripts=['bin/yubikey', 'bin/yubiclient'],
     url='https://bitbucket.org/psagers/yubiotp',
     license='BSD',
-    install_requires=['pycrypto'],
+    install_requires=[
+        'six',
+        'pycrypto',
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",
         "Topic :: Security",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
+    test_suite='yubiotp.test',
+    test_loader=test_loader,
 )

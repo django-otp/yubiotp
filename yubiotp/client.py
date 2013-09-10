@@ -3,8 +3,10 @@ from hashlib import sha1
 import hmac
 from random import choice
 import string
-from urllib import urlencode
-from urllib2 import urlopen
+
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import urlopen
+from six.moves import xrange
 
 
 class YubiClient10(object):
@@ -333,7 +335,7 @@ def param_signature(params, api_key):
     :returns: The parameter signature (raw, not base64-encoded).
     :rtype: str
     """
-    param_string = '&'.join('{0}={1}'.format(k,v) for k,v in sorted(params))
+    param_string = '&'.join('{0}={1}'.format(k, v) for k, v in sorted(params))
     signature = hmac.new(api_key, param_string, sha1).digest()
 
     return signature

@@ -3,14 +3,14 @@ Implementation of the Yubico OTP algorithm. This can generate and parse OTP
 structures.
 
 >>> from binascii import unhexlify
->>> key = '0123456789abcdef'
->>> otp = OTP(unhexlify('0123456789ab'), 5, 0x0153f8, 0, 0x1234)
->>> token = encode_otp(otp, key, 'cclngiuv')
->>> token
-'cclngiuvttkhthcilurtkerbjnnkljfkjccklkhl'
+>>> key = b'0123456789abcdef'
+>>> otp = OTP(unhexlify(b'0123456789ab'), 5, 0x0153f8, 0, 0x1234)
+>>> token = encode_otp(otp, key, b'cclngiuv')
+>>> token == b'cclngiuvttkhthcilurtkerbjnnkljfkjccklkhl'
+True
 >>> public_id, otp2 = decode_otp(token, key)
->>> public_id
-'cclngiuv'
+>>> public_id == b'cclngiuv'
+True
 >>> otp2 == otp
 True
 """
@@ -64,7 +64,7 @@ def decode_otp(token, key):
     return (public_id, otp)
 
 
-def encode_otp(otp, key, public_id=''):
+def encode_otp(otp, key, public_id=b''):
     """
     Encodes an :class:`OTP` structure, encrypts it with the given key and
     returns the modhex-encoded token.
