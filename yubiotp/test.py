@@ -1,13 +1,18 @@
-from unittest import TestSuite, TextTestRunner
 from doctest import DocTestSuite
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest  # noqa
 
 from . import crc, modhex, otp
 
 
-suite = TestSuite()
+def load_tests(loader, tests, pattern):
+    suite = unittest.TestSuite()
 
-suite.addTest(DocTestSuite(crc))
-suite.addTest(DocTestSuite(modhex))
-suite.addTest(DocTestSuite(otp))
+    suite.addTests(tests)
+    suite.addTest(DocTestSuite(crc))
+    suite.addTest(DocTestSuite(modhex))
+    suite.addTest(DocTestSuite(otp))
 
-TextTestRunner().run(suite)
+    return suite
