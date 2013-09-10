@@ -10,7 +10,7 @@ function yubikey ()
 
 unlink $config 2>/dev/null
 
-yubikey init -k 00112233445566778899aabbccddeeff -u abcdef -s 3 -P username
+yubikey init -k 00112233445566778899aabbccddeeff -u abcdef -s 3 -p cccccccb
 yubikey -n 1 init
 yubikey list
 
