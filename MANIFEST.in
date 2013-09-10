@@ -3,4 +3,4 @@ include CHANGES LICENSE README
 recursive-include docs *.rst *.py Makefile
 prune docs/build 
 
-global-exclude .DS_Store *.pyc *.pyo .*.sw?
+global-exclude .DS_Store
