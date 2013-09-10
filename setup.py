@@ -12,7 +12,7 @@ else:
 
 setup(
     name='YubiOTP',
-    version='0.2.0',
+    version='0.2.1',
     description='A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service.',
     long_description=open('README').read(),
     author='Peter Sagerson',
