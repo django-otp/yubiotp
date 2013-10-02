@@ -5,6 +5,8 @@ structures.
 >>> from binascii import unhexlify
 >>> key = b'0123456789abcdef'
 >>> otp = OTP(unhexlify(b'0123456789ab'), 5, 0x0153f8, 0, 0x1234)
+>>> _ = repr(otp)  # coverage
+>>> _ = str(otp)  # coverage
 >>> token = encode_otp(otp, key, b'cclngiuv')
 >>> token == b'cclngiuvttkhthcilurtkerbjnnkljfkjccklkhl'
 True
@@ -15,8 +17,10 @@ True
 True
 """
 
+from binascii import hexlify
 from datetime import datetime
 from random import randrange
+import six
 from struct import pack, unpack
 
 from .crc import crc16, verify_crc16
@@ -113,7 +117,16 @@ class OTP(object):
         self.rand = rand
 
     def __repr__(self):
-        return 'OTP: 0x{0:x} {1}/{2} (0x{3:x}/0x{4:x})'.format(self.uid, self.session, self.counter, self.timestamp, self.rand)
+        return 'OTP({self.uid!r}, {self.session!r}, {self.timestamp!r}, {self.counter!r}, {self.rand!r})'.format(self=self)
+
+    def __str__(self):
+        if six.PY3:
+            return self.__unicode__()
+        else:
+            return self.__unicode__().encode('utf-8')
+
+    def __unicode__(self):
+        return 'OTP: {0} {1}/{2} (0x{3:x}/0x{4:x})'.format(hexlify(self.uid), self.session, self.counter, self.timestamp, self.rand)
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
