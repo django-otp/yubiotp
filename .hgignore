@@ -1,4 +1,5 @@
 ^MANIFEST$
+^build/
 ^dist/
 ^docs/build/
 ^YubiOTP.egg-info/
