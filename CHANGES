@@ -3,6 +3,13 @@
 Change Log
 ==========
 
+v0.2.2 - July 20, 2018 - Switch to pycryptodome
+-----------------------------------------------
+
+- Switch from the deprecated pycrypto to pycryptodome.
+
+- Update supported Python versions.
+
 
 v0.2.1 - September 10, 2013 - Python 3 compatibility
 ----------------------------------------------------
