@@ -14,17 +14,14 @@ setup(
     name='YubiOTP',
     version='0.2.2',
     description='A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service.',
-    long_description=open('README').read(),
     author='Peter Sagerson',
-    author_email='psagersccdwvgsz@ignorare.net',
-    packages=['yubiotp'],
-    scripts=['bin/yubikey', 'bin/yubiclient'],
-    url='https://bitbucket.org/psagers/yubiotp',
+    author_email='psagers@ignorare.net',
+    url='https://github.com/django-otp/yubiotp',
+    project_urls={
+        "Documentation": 'https://yubiotp.readthedocs.io/',
+        "Source": 'https://github.com/django-otp/yubiotp',
+    },
     license='BSD',
-    install_requires=[
-        'six',
-        'pycryptodome',
-    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -39,6 +36,19 @@ setup(
         'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+
+    packages=[
+        'yubiotp',
+    ],
+    scripts=[
+        'bin/yubikey',
+        'bin/yubiclient',
+    ],
+    install_requires=[
+        'six',
+        'pycryptodome',
+    ],
+
     test_suite='yubiotp.test',
     test_loader=test_loader,
 )

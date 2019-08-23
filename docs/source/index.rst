@@ -1,7 +1,7 @@
 YubiOTP
 =======
 
-.. include:: ../../README
+.. include:: ../../README.rst
 
 .. toctree::
     otp
