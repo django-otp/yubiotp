@@ -12,7 +12,7 @@ else:
 
 setup(
     name='YubiOTP',
-    version='0.2.2',
+    version='0.2.2.post1',
     description='A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service.',
     author='Peter Sagerson',
     author_email='psagers@ignorare.net',
@@ -27,11 +27,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python',
         'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules',

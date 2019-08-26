@@ -1,12 +1,12 @@
-from base64 import b64encode, b64decode
+from base64 import b64decode, b64encode
 from hashlib import sha1
 import hmac
 from random import choice
 import string
 
+from six.moves import xrange
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.request import urlopen
-from six.moves import xrange
 
 
 class YubiClient10(object):

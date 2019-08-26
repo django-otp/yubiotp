@@ -1,27 +1,20 @@
-.PHONY: all sdist wheel docs sign upload clean
+.PHONY: full
+full: clean sdist wheel
 
-
-all: clean sdist wheel docs
-
+.PHONY: sdist
 sdist:
 	python setup.py sdist
 
+.PHONY: wheel
 wheel:
 	python setup.py bdist_wheel
 
-docs:
-	$(MAKE) -C docs html zip
-
-sign:
-	for f in dist/*.gz dist/*.whl; do \
-	    gpg --detach-sign --armor $$f; \
-	done
-
+.PHONY: upload
 upload:
 	twine upload dist/*
 
+.PHONY: clean
 clean:
 	-rm -r build
 	-rm -r dist
 	-rm -r *.egg-info
-	$(MAKE) -C docs clean

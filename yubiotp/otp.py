@@ -16,17 +16,16 @@ True
 >>> otp2 == otp
 True
 """
-
 from binascii import hexlify
 from datetime import datetime
 from random import randrange
-import six
 from struct import pack, unpack
 
-from .crc import crc16, verify_crc16
-from .modhex import modhex, unmodhex, is_modhex
-
 from Crypto.Cipher import AES
+import six
+
+from .crc import crc16, verify_crc16
+from .modhex import is_modhex, modhex, unmodhex
 
 
 __all__ = ['decode_otp', 'encode_otp', 'OTP', 'YubiKey', 'CRCError']

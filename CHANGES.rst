@@ -1,5 +1,3 @@
-.. vim:ft=rst
-
 Change Log
 ==========
 

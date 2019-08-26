@@ -102,6 +102,7 @@ def lookup(alist, key):
     except StopIteration:
         raise ValueError()
 
+
 hex_chars = b'0123456789abcdef'
 modhex_chars = b'cbdefghijklnrtuv'
 
