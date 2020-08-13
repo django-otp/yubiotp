@@ -10,8 +10,7 @@ which uses keyboard-independent characters.
 
 from binascii import hexlify, unhexlify
 from functools import partial
-
-from six import int2byte, iterbytes
+import struct
 
 
 __all__ = ['modhex', 'unmodhex', 'is_modhex', 'hex_to_modhex', 'modhex_to_hex']
@@ -69,7 +68,7 @@ def hex_to_modhex(hex_str):
     """
     try:
         return b''.join(int2byte(hex_to_modhex_char(b))
-                        for b in iterbytes(hex_str.lower()))
+                        for b in iter(hex_str.lower()))
     except ValueError:
         raise ValueError('Illegal hex character in input')
 
@@ -87,7 +86,7 @@ def modhex_to_hex(modhex_str):
     """
     try:
         return b''.join(int2byte(modhex_to_hex_char(b))
-                        for b in iterbytes(modhex_str.lower()))
+                        for b in iter(modhex_str.lower()))
     except ValueError:
         raise ValueError('Illegal modhex character in input')
 
@@ -96,9 +95,13 @@ def modhex_to_hex(modhex_str):
 # Internals
 #
 
+def int2byte(i):
+    return struct.Struct(">B").pack(i)
+
+
 def lookup(alist, key):
     try:
-        return next(v for k, v in alist if k == key)
+        return next(v for (k, v) in alist if k == key)
     except StopIteration:
         raise ValueError()
 
@@ -106,8 +109,8 @@ def lookup(alist, key):
 hex_chars = b'0123456789abcdef'
 modhex_chars = b'cbdefghijklnrtuv'
 
-hex_to_modhex_map = list(zip(iterbytes(hex_chars), iterbytes(modhex_chars)))
-modhex_to_hex_map = list(zip(iterbytes(modhex_chars), iterbytes(hex_chars)))
+hex_to_modhex_map = list(zip(iter(hex_chars), iter(modhex_chars)))
+modhex_to_hex_map = list(zip(iter(modhex_chars), iter(hex_chars)))
 
 hex_to_modhex_char = partial(lookup, hex_to_modhex_map)
 modhex_to_hex_char = partial(lookup, modhex_to_hex_map)

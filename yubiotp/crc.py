@@ -1,7 +1,6 @@
 """
 CRC16 implementation for Yubico OTP.
 """
-from six import iterbytes
 
 
 def crc16(data):
@@ -18,7 +17,7 @@ def crc16(data):
     """
     crc = 0xffff
 
-    for byte in iterbytes(data):
+    for byte in iter(data):
         crc ^= byte
 
         for i in range(8):

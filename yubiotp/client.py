@@ -3,10 +3,8 @@ from hashlib import sha1
 import hmac
 from random import choice
 import string
-
-from six.moves import xrange
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import urlopen
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
 
 class YubiClient10(object):
@@ -91,7 +89,7 @@ class YubiClient10(object):
             return 'http://api.yubico.com/wsapi/verify'
 
     def nonce(self):
-        return ''.join(choice(self._NONCE_CHARS) for i in xrange(32))
+        return ''.join(choice(self._NONCE_CHARS) for i in range(32))
 
     def param_string(self, token, nonce):
         params = self.params(token, nonce)

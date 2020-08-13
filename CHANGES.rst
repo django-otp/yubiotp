@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+Unreleased - Drop Python 2 support
+-------------------------------------------------------------------------------
+
+- Dropped support for Python 2 and removed six.
+
+
 v0.2.2 - July 20, 2018 - Switch to pycryptodome
 -----------------------------------------------
 

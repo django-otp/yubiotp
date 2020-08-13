@@ -9,6 +9,7 @@ setuptools = "*"
 wheel = "*"
 twine = "*"
 sphinx = "*"
+isort = "==5.*"
 
 [packages]
 

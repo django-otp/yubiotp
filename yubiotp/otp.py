@@ -22,7 +22,6 @@ from random import randrange
 from struct import pack, unpack
 
 from Crypto.Cipher import AES
-import six
 
 from .crc import crc16, verify_crc16
 from .modhex import is_modhex, modhex, unmodhex
@@ -119,12 +118,6 @@ class OTP(object):
         return 'OTP({self.uid!r}, {self.session!r}, {self.timestamp!r}, {self.counter!r}, {self.rand!r})'.format(self=self)
 
     def __str__(self):
-        if six.PY3:
-            return self.__unicode__()
-        else:
-            return self.__unicode__().encode('utf-8')
-
-    def __unicode__(self):
         return 'OTP: {0} {1}/{2} (0x{3:x}/0x{4:x})'.format(hexlify(self.uid), self.session, self.counter, self.timestamp, self.rand)
 
     def __eq__(self, other):

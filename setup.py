@@ -2,13 +2,6 @@
 
 from setuptools import setup
 
-try:
-    import unittest2  # noqa
-except ImportError:
-    test_loader = 'unittest:TestLoader'
-else:
-    test_loader = 'unittest2:TestLoader'
-
 
 setup(
     name='YubiOTP',
@@ -26,9 +19,8 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python',
+        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
@@ -41,10 +33,6 @@ setup(
         'bin/yubiclient',
     ],
     install_requires=[
-        'six',
         'pycryptodome',
     ],
-
-    test_suite='yubiotp.test',
-    test_loader=test_loader,
 )
