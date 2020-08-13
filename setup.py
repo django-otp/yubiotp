@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='YubiOTP',
-    version='0.2.2.post1',
+    version='1.0.0',
     description='A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service.',
     author='Peter Sagerson',
     author_email='psagers@ignorare.net',

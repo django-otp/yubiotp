@@ -10,6 +10,7 @@ wheel = "*"
 twine = "*"
 sphinx = "*"
 isort = "==5.*"
+bumpversion = "*"
 
 [packages]
 

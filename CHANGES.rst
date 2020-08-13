@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-Unreleased - Drop Python 2 support
+v1.0.0 - August 13, 2020 - Drop Python 2 support
 -------------------------------------------------------------------------------
 
 - Dropped support for Python 2 and removed six.
