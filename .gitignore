@@ -1,5 +1,13 @@
+# Python
+__pycache__/
+
+# setuptools
+/MANIFEST
 /build/
 /dist/
 /docs/build/
-/MANIFEST
-/YubiOTP.egg-info/
+*.egg-info/
+
+# Other tools
+/.coverage
+/.tox/
