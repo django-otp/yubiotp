@@ -63,9 +63,6 @@ cov = [
     "coverage report",
 ]
 
-yubiclient = "python -m yubiotp.cli.yubiclient {args}"
-yubikey = "python -m yubiotp.cli.yubikey {args}"
-
 
 [tool.hatch.envs.test.scripts]
 run = "test"
