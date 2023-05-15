@@ -23,6 +23,7 @@ class YubiClient10(object):
         custom validation service. Defaults to
         ``'http[s]://api.yubico.com/wsapi/verify'``.
     """
+
     _NONCE_CHARS = string.ascii_letters + string.digits
 
     def __init__(self, api_id=1, api_key=None, ssl=False):
@@ -44,7 +45,9 @@ class YubiClient10(object):
 
         url = self.url(token, nonce)
         stream = urlopen(url)
-        response = YubiResponse(stream.read().decode('utf-8'), self.api_key, token, nonce)
+        response = YubiResponse(
+            stream.read().decode('utf-8'), self.api_key, token, nonce
+        )
         stream.close()
 
         return response
@@ -125,6 +128,7 @@ class YubiClient11(YubiClient10):
         custom validation service. Defaults to
         ``'http[s]://api.yubico.com/wsapi/verify'``.
     """
+
     def __init__(self, api_id=1, api_key=None, ssl=False, timestamp=False):
         super(YubiClient11, self).__init__(api_id, api_key, ssl)
 
@@ -159,7 +163,10 @@ class YubiClient20(YubiClient11):
         custom validation service. Defaults to
         ``'http[s]://api.yubico.com/wsapi/2.0/verify'``.
     """
-    def __init__(self, api_id=1, api_key=None, ssl=False, timestamp=False, sl=None, timeout=None):
+
+    def __init__(
+        self, api_id=1, api_key=None, ssl=False, timestamp=False, sl=None, timeout=None
+    ):
         super(YubiClient20, self).__init__(api_id, api_key, ssl, timestamp)
 
         self.sl = sl
@@ -193,6 +200,7 @@ class YubiResponse(object):
 
         A dictionary of the response fields (excluding 'h').
     """
+
     def __init__(self, raw, api_key, token, nonce):
         self.raw = raw
         self.api_key = api_key
@@ -205,7 +213,9 @@ class YubiResponse(object):
         self._parse_response()
 
     def _parse_response(self):
-        self.fields = dict(tuple(line.split('=', 1)) for line in self.raw.splitlines() if '=' in line)
+        self.fields = dict(
+            tuple(line.split('=', 1)) for line in self.raw.splitlines() if '=' in line
+        )
 
         if 'h' in self.fields:
             self.signature = b64decode(self.fields['h'].encode())
@@ -264,7 +274,7 @@ class YubiResponse(object):
         """
         if self.api_key is not None:
             signature = param_signature(self.fields.items(), self.api_key)
-            is_valid = (signature == self.signature)
+            is_valid = signature == self.signature
         else:
             is_valid = True
 
@@ -280,7 +290,7 @@ class YubiResponse(object):
         :rtype: bool for a positive result or ``None`` for an ambiguous result.
         """
         if 'otp' in self.fields:
-            is_valid = (self.fields['otp'] == self.token)
+            is_valid = self.fields['otp'] == self.token
         else:
             is_valid = None
 
@@ -301,7 +311,7 @@ class YubiResponse(object):
         if (self.nonce is not None) and (reply is None):
             is_valid = None
         else:
-            is_valid = (reply == self.nonce)
+            is_valid = reply == self.nonce
 
         return is_valid
 

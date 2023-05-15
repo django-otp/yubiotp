@@ -26,7 +26,6 @@ from Crypto.Cipher import AES
 from .crc import crc16, verify_crc16
 from .modhex import is_modhex, modhex, unmodhex
 
-
 __all__ = ['decode_otp', 'encode_otp', 'OTP', 'YubiKey', 'CRCError']
 
 
@@ -34,6 +33,7 @@ class CRCError(ValueError):
     """
     Raised when a decrypted token has an invalid checksum.
     """
+
     pass
 
 
@@ -107,6 +107,7 @@ class OTP(object):
     :param int counter: The volatile usage counter.
     :param int rand: An arbitrary number in [0..2^16].
     """
+
     def __init__(self, uid, session, timestamp, counter, rand):
         self.uid = uid
         self.session = session
@@ -115,19 +116,29 @@ class OTP(object):
         self.rand = rand
 
     def __repr__(self):
-        return 'OTP({self.uid!r}, {self.session!r}, {self.timestamp!r}, {self.counter!r}, {self.rand!r})'.format(self=self)
+        return 'OTP({self.uid!r}, {self.session!r}, {self.timestamp!r}, {self.counter!r}, {self.rand!r})'.format(
+            self=self
+        )
 
     def __str__(self):
-        return 'OTP: {0} {1}/{2} (0x{3:x}/0x{4:x})'.format(hexlify(self.uid), self.session, self.counter, self.timestamp, self.rand)
+        return 'OTP: {0} {1}/{2} (0x{3:x}/0x{4:x})'.format(
+            hexlify(self.uid), self.session, self.counter, self.timestamp, self.rand
+        )
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
             return False
 
         self_props = (self.uid, self.session, self.timestamp, self.counter, self.rand)
-        other_props = (other.uid, other.session, other.timestamp, other.counter, other.rand)
+        other_props = (
+            other.uid,
+            other.session,
+            other.timestamp,
+            other.counter,
+            other.rand,
+        )
 
-        return (self_props == other_props)
+        return self_props == other_props
 
     def pack(self):
         """
@@ -137,14 +148,15 @@ class OTP(object):
         fields = (
             self.uid,
             self.session,
-            self.timestamp & 0xff, (self.timestamp >> 8) & 0xffff,
+            self.timestamp & 0xFF,
+            (self.timestamp >> 8) & 0xFFFF,
             self.counter,
             self.rand,
         )
 
         buf = pack('<6s H BH B H', *fields)
 
-        crc = ~crc16(buf) & 0xffff
+        crc = ~crc16(buf) & 0xFFFF
         buf += pack('<H', crc)
 
         return buf
@@ -181,10 +193,11 @@ class YubiKey(object):
     :param int counter: The volatile session counter. This defaults to 0 at
         init time, but the caller can override this.
     """
+
     def __init__(self, uid, session, counter=0):
         self.uid = uid
-        self.session = min(session, 0x7fff)
-        self.counter = min(counter, 0xff)
+        self.session = min(session, 0x7FFF)
+        self.counter = min(counter, 0xFF)
 
         self._init_timestamp()
 
@@ -194,13 +207,15 @@ class YubiKey(object):
 
         :rtype: :class:`OTP`
         """
-        otp = OTP(self.uid, self.session, self._timestamp(), self.counter, randrange(0xffff))
+        otp = OTP(
+            self.uid, self.session, self._timestamp(), self.counter, randrange(0xFFFF)
+        )
         self._increment_counter()
 
         return otp
 
     def _init_timestamp(self):
-        self._timestamp_base = randrange(0x00ffff)
+        self._timestamp_base = randrange(0x00FFFF)
         self._timestamp_start = datetime.now()
 
     def _timestamp(self):
@@ -211,14 +226,14 @@ class YubiKey(object):
         delta = datetime.now() - self._timestamp_start
         delta = delta.days * 86400 + delta.seconds
 
-        return (self._timestamp_base + (delta * 8)) % 0xffffff
+        return (self._timestamp_base + (delta * 8)) % 0xFFFFFF
 
     def _increment_counter(self):
-        if self.counter >= 0xff:
+        if self.counter >= 0xFF:
             self._increment_session()
             self.counter = 0
         else:
             self.counter += 1
 
     def _increment_session(self):
-        self.session = min(self.session + 1, 0x7fff)
+        self.session = min(self.session + 1, 0x7FFF)

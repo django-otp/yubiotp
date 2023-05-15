@@ -12,7 +12,6 @@ from binascii import hexlify, unhexlify
 from functools import partial
 import struct
 
-
 __all__ = ['modhex', 'unmodhex', 'is_modhex', 'hex_to_modhex', 'modhex_to_hex']
 
 
@@ -67,8 +66,7 @@ def hex_to_modhex(hex_str):
     ValueError: Illegal hex character in input
     """
     try:
-        return b''.join(int2byte(hex_to_modhex_char(b))
-                        for b in iter(hex_str.lower()))
+        return b''.join(int2byte(hex_to_modhex_char(b)) for b in iter(hex_str.lower()))
     except ValueError:
         raise ValueError('Illegal hex character in input')
 
@@ -85,8 +83,9 @@ def modhex_to_hex(modhex_str):
     ValueError: Illegal modhex character in input
     """
     try:
-        return b''.join(int2byte(modhex_to_hex_char(b))
-                        for b in iter(modhex_str.lower()))
+        return b''.join(
+            int2byte(modhex_to_hex_char(b)) for b in iter(modhex_str.lower())
+        )
     except ValueError:
         raise ValueError('Illegal modhex character in input')
 
@@ -94,6 +93,7 @@ def modhex_to_hex(modhex_str):
 #
 # Internals
 #
+
 
 def int2byte(i):
     return struct.Struct(">B").pack(i)

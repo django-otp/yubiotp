@@ -4,7 +4,7 @@ config="yubikey-test.conf"
 
 function yubikey ()
 {
-    coverage run -a --source=yubiotp,. -- ./yubikey -f $config "$@"
+    coverage run -a -m yubiotp.cli.yubikey -f $config "$@"
 }
 
 

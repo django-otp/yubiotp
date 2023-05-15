@@ -1,0 +1,131 @@
+[project]
+name = "YubiOTP"
+version = "1.0.0"
+description = "A library for verifying YubiKey OTP tokens, both locally and through a Yubico web service."
+readme = "README.rst"
+requires-python = ">=3.7"
+license = "Unlicense"
+authors = [
+    { name = "Peter Sagerson", email = "psagers@ignorare.net" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "pycryptodome",
+]
+
+[project.urls]
+Homepage = "https://github.com/django-otp/yubiotp"
+Documentation = "https://yubiotp.readthedocs.io/"
+
+[project.scripts]
+yubiclient = "yubiotp.cli.yubiclient:main"
+yubikey = "yubiotp.cli.yubikey:main"
+
+
+#
+# Development
+#
+
+[tool.hatch.envs.default]
+dependencies = [
+    "black ~= 23.0",
+    "bumpversion ~= 0.6.0",
+    "coverage ~= 6.3",
+    "flake8 ~= 4.0",
+    "isort ~= 5.10",
+]
+
+[tool.hatch.envs.default.scripts]
+lint = [
+    "flake8 yubiotp",
+    "isort --check --quiet yubiotp",
+    "black --check --quiet yubiotp",
+]
+fix = [
+    "isort --quiet yubiotp",
+    "black --quiet yubiotp",
+]
+
+test = "python -s -m unittest {args}"
+check = ["lint", "test"]
+
+warn = "python -Wd -s -m unittest {args}"
+cov = [
+    "coverage run -m unittest {args}",
+    "coverage report",
+]
+
+yubiclient = "python -m yubiotp.cli.yubiclient {args}"
+yubikey = "python -m yubiotp.cli.yubikey {args}"
+
+
+[tool.hatch.envs.test.scripts]
+run = "test"
+
+[tool.hatch.envs.test.overrides]
+matrix.mode.scripts = [
+    { key = "run", value = "lint", if = ["lint"] },
+    { key = "run", value = "cov", if = ["coverage"] },
+]
+
+[[tool.hatch.envs.test.matrix]]
+mode = ["lint"]
+
+# WARNING: When you update the Python versions, make sure to update
+# .github/workflows/* as well.
+[[tool.hatch.envs.test.matrix]]
+python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+[[tool.hatch.envs.test.matrix]]
+mode = ["coverage"]
+
+
+[tool.hatch.envs.docs]
+template = "docs"
+dependencies = [
+    "sphinx"
+]
+
+[tool.hatch.envs.docs.scripts]
+make = "command make -C docs {args:html}"
+open = "command xdg-open docs/build/html/index.html"
+
+
+#
+# Build
+#
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["yubiotp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/bin",
+    "/docs",
+    "/yubiotp",
+    "/CHANGES.rst",
+]
+
+
+#
+# Other tools
+#
+
+[tool.isort]
+profile = "black"
+force_sort_within_sections = true
+
+[tool.black]
+skip-string-normalization = true

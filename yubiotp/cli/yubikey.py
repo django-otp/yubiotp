@@ -1,21 +1,16 @@
-#!/usr/bin/env python
-
 """
 This is a command-line interface to the yubiotp package. Its primary function
 is to simulate a YubiKey device for testing purposes. It also includes some
 utilities for things like converting to and from modhex.
 """
-from __future__ import print_function
-
-import sys
-from os.path import expanduser
-from optparse import OptionParser, OptionGroup, Option, OptionValueError
-from random import choice
 from binascii import hexlify, unhexlify
+import configparser
+from optparse import Option, OptionGroup, OptionParser, OptionValueError
+from os.path import expanduser
+from random import choice
+import sys
 
-from six.moves import configparser
-
-from yubiotp.modhex import modhex, unmodhex, modhex_to_hex, hex_to_modhex
+from yubiotp.modhex import hex_to_modhex, modhex, modhex_to_hex, unmodhex
 from yubiotp.otp import YubiKey, decode_otp, encode_otp
 
 
@@ -34,7 +29,6 @@ def main():
         'delete': DeleteHandler(),
         'gen': GenHandler(),
         'parse': ParseHandler(),
-
         'modhex': ModhexHandler(),
     }
 
@@ -70,10 +64,11 @@ class YubiKeyOption(Option):
     type are expected to be strings of hex digits, which will be decoded into
     binary strings before being stored.
     """
+
     TYPES = Option.TYPES + ('hex', 'modhex')
-    TYPE_CHECKER = dict(Option.TYPE_CHECKER,
-                        hex=check_hex_value,
-                        modhex=check_modhex_value)
+    TYPE_CHECKER = dict(
+        Option.TYPE_CHECKER, hex=check_hex_value, modhex=check_modhex_value
+    )
 
 
 make_option = YubiKeyOption
@@ -82,8 +77,22 @@ make_option = YubiKeyOption
 class Handler(object):
     name = ''
     options = [
-        make_option('-f', '--config', dest='config', default='~/.yubikey', metavar='PATH', help='A config file to store device state. [%default]'),
-        make_option('-n', '--name', dest='device_name', default='0', metavar='NAME', help='The device number or name to operate on. [%default]'),
+        make_option(
+            '-f',
+            '--config',
+            dest='config',
+            default='~/.yubikey',
+            metavar='PATH',
+            help='A config file to store device state. [%default]',
+        ),
+        make_option(
+            '-n',
+            '--name',
+            dest='device_name',
+            default='0',
+            metavar='NAME',
+            help='The device number or name to operate on. [%default]',
+        ),
     ]
     args = ''
     description = 'Simulates one or more YubiKey devices from which you can generate tokens. Also parses tokens for verification. Choose an action for more information.'
@@ -141,7 +150,7 @@ class ListHandler(Handler):
     description = 'List all virtual YubiKey devices.'
 
     def handle(self, opts, args):
-        config = configparser.SafeConfigParser()
+        config = configparser.ConfigParser()
         config.read([expanduser(opts.config)])
         config.write(sys.stdout)
 
@@ -149,10 +158,36 @@ class ListHandler(Handler):
 class InitHandler(Handler):
     name = 'init'
     options = [
-        make_option('-p', '--public', dest='public_id', type='modhex', default='', help='A modhex-encoded public ID (up to 16 bytes)'),
-        make_option('-k', '--key', dest='key', type='hex', help='A hex-encoded 16-byte AES key. If omitted, one will be generated.'),
-        make_option('-u', '--uid', dest='uid', type='hex', help='A hex-encoded 6-byte private ID. If omitted, one will be generated.'),
-        make_option('-s', '--session', dest='session', type='int', default=0, help='The initial session counter. [%default]'),
+        make_option(
+            '-p',
+            '--public',
+            dest='public_id',
+            type='modhex',
+            default='',
+            help='A modhex-encoded public ID (up to 16 bytes)',
+        ),
+        make_option(
+            '-k',
+            '--key',
+            dest='key',
+            type='hex',
+            help='A hex-encoded 16-byte AES key. If omitted, one will be generated.',
+        ),
+        make_option(
+            '-u',
+            '--uid',
+            dest='uid',
+            type='hex',
+            help='A hex-encoded 6-byte private ID. If omitted, one will be generated.',
+        ),
+        make_option(
+            '-s',
+            '--session',
+            dest='session',
+            type='int',
+            default=0,
+            help='The initial session counter. [%default]',
+        ),
     ]
     description = 'Initialize a new virtual YubiKey.'
 
@@ -183,8 +218,21 @@ class DeleteHandler(Handler):
 class GenHandler(Handler):
     name = 'gen'
     options = [
-        make_option('-c', '--count', dest='count', type='int', default=1, help='Generate multiple tokens. [%default]'),
-        make_option('-i', '--interactive', action='store_true', dest='interactive', help='Generate a token for every line read from stdin until interrupted.'),
+        make_option(
+            '-c',
+            '--count',
+            dest='count',
+            type='int',
+            default=1,
+            help='Generate multiple tokens. [%default]',
+        ),
+        make_option(
+            '-i',
+            '--interactive',
+            action='store_true',
+            dest='interactive',
+            help='Generate a token for every line read from stdin until interrupted.',
+        ),
     ]
     args = ''
     description = 'Generate one or more tokens from the virtual device. This simulates pressing the YubiKey\'s button.'
@@ -210,7 +258,9 @@ class ParseHandler(Handler):
     name = 'parse'
     options = []
     args = 'token ...'
-    description = 'Parse tokens generated by the selected virtual device and display its fields.'
+    description = (
+        'Parse tokens generated by the selected virtual device and display its fields.'
+    )
 
     def handle(self, opts, args):
         device = Device(opts.config, opts.device_name)
@@ -234,8 +284,20 @@ class ParseHandler(Handler):
 class ModhexHandler(Handler):
     name = 'modhex'
     options = [
-        make_option('-d', '--decode', action='store_true', dest='decode', help='Decode from modhex. Default is to encode to modhex.'),
-        make_option('-H', '--hex', action='store_true', dest='hex', help='Encode to or decode from a string of hex digits. Default is a raw string.'),
+        make_option(
+            '-d',
+            '--decode',
+            action='store_true',
+            dest='decode',
+            help='Decode from modhex. Default is to encode to modhex.',
+        ),
+        make_option(
+            '-H',
+            '--hex',
+            action='store_true',
+            dest='hex',
+            help='Encode to or decode from a string of hex digits. Default is a raw string.',
+        ),
     ]
     args = 'input ...'
     description = 'Encode (default) or decode a modhex string.'
@@ -277,7 +339,7 @@ class Device(object):
         self.yubikey = None
 
     def _load_config(self):
-        config = configparser.SafeConfigParser()
+        config = configparser.ConfigParser()
         config.read([self.config_path])
 
         return config
@@ -321,7 +383,11 @@ class Device(object):
 
                 self.get_config('key')
             except Exception as e:
-                usage('The device named "{0}" does not exist or is corrupt. ({1})'.format(self.name, e))
+                usage(
+                    'The device named "{0}" does not exist or is corrupt. ({1})'.format(
+                        self.name, e
+                    )
+                )
             else:
                 self.yubikey = YubiKey(uid=uid, session=session)
 

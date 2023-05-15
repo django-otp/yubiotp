@@ -1,10 +1,10 @@
 #!/bin/sh
 
-config="~/.yubikey-test"
+config="yubikey-test.conf"
 
 function yubikey ()
 {
-    ./yubikey -f $config "$@"
+    python -m yubiotp.cli.yubikey -f $config "$@"
 }
 
 
