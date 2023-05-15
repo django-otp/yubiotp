@@ -15,7 +15,7 @@ def crc16(data):
     >>> hex(v)
     '0xf0b8'
     """
-    crc = 0xffff
+    crc = 0xFFFF
 
     for byte in iter(data):
         crc ^= byte
@@ -39,4 +39,4 @@ def verify_crc16(data):
     >>> verify_crc16(unhexlify(b'0792ebfe26cc130030c20011c89f23c8'))
     False
     """
-    return crc16(data) == 0xf0b8
+    return crc16(data) == 0xF0B8
