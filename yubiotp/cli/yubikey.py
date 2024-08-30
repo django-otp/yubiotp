@@ -3,6 +3,7 @@ This is a command-line interface to the yubiotp package. Its primary function
 is to simulate a YubiKey device for testing purposes. It also includes some
 utilities for things like converting to and from modhex.
 """
+
 from binascii import hexlify, unhexlify
 import configparser
 from optparse import Option, OptionGroup, OptionParser, OptionValueError
