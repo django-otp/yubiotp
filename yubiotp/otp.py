@@ -16,6 +16,7 @@ True
 >>> otp2 == otp
 True
 """
+
 from binascii import hexlify
 from datetime import datetime
 from random import randrange

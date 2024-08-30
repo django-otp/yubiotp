@@ -36,22 +36,22 @@ yubikey = "yubiotp.cli.yubikey:main"
 
 [tool.hatch.envs.default]
 dependencies = [
-    "black ~= 23.0",
+    "black ~= 24.8.0",
     "bumpversion ~= 0.6.0",
-    "coverage ~= 6.3",
-    "flake8 ~= 4.0",
-    "isort ~= 5.10",
+    "coverage ~= 7.6.1",
+    "flake8 ~= 7.1.1",
+    "isort ~= 5.13.1",
 ]
 
 [tool.hatch.envs.default.scripts]
 lint = [
     "flake8 yubiotp",
-    "isort --check --quiet yubiotp",
-    "black --check --quiet yubiotp",
+    "isort --check yubiotp",
+    "black --check yubiotp",
 ]
 fix = [
-    "isort --quiet yubiotp",
-    "black --quiet yubiotp",
+    "isort yubiotp",
+    "black yubiotp",
 ]
 
 test = "python -s -m unittest {args}"
@@ -79,7 +79,7 @@ mode = ["lint"]
 # WARNING: When you update the Python versions, make sure to update
 # .github/workflows/* as well.
 [[tool.hatch.envs.test.matrix]]
-python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
 [[tool.hatch.envs.test.matrix]]
 mode = ["coverage"]
